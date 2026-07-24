@@ -37,6 +37,12 @@ RUN pip install --no-cache-dir --break-system-packages \
 
 WORKDIR /app
 
+# Empty target directory for the candidate's/solution's release-publisher.mjs.
+# Docker COPY can't materialize an empty directory from git (git doesn't track
+# empty dirs either), so it must be created explicitly or /app/publisher never
+# exists in the built image.
+RUN mkdir -p /app/publisher
+
 # Build-time signing keypairs. NOT shipped as fixtures: they exist only in the
 # built image. current/ is the key in force (the publisher signs, the gateway
 # verifies); revoked/ is retained so the UNTRUSTED_SIGNATURE rotation scenario is

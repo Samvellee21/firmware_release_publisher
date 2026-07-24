@@ -24,7 +24,7 @@ function run(connection, sql) {
 const db = new duckdb.Database('releases.duckdb');
 const con = db.connect();
 
-await run(con, "CREATE OR REPLACE TABLE manifest AS SELECT * FROM read_csv_auto('../fixtures/build_manifest.csv', header=true)");
+await run(con, "CREATE OR REPLACE TABLE manifest AS SELECT * FROM read_csv_auto('/app/fixtures/build_manifest.csv', header=true)");
 
 const bundles = await all(con, `
 SELECT
@@ -55,8 +55,8 @@ for (const bundle of bundles) {
     fs.writeFileSync('descriptor.bin', descriptor);
     execFileSync('openssl', [
         'cms', '-sign', '-in', 'descriptor.bin',
-        '-signer', '../../local-dev/keys/current/current.cert.pem',
-        '-inkey', '../../local-dev/keys/current/current.key.pem',
+        '-signer', '/app/keys/current/current.cert.pem',
+        '-inkey', '/app/keys/current/current.key.pem',
         '-outform', 'PEM', '-binary', '-out', 'sig.pem',
     ]);
     const signature = fs.readFileSync('sig.pem', 'utf8');

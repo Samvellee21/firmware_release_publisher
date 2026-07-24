@@ -37,9 +37,27 @@ the gateway's ledger still only held one publication per bundle (same publicatio
 same tokens), so idempotent replay is working, and the receipts/tokens are actually sitting
 in `releases.duckdb`, not just printed to stdout.
 
-What I have **not** done is the full two-proof Docker run (empty container → reward 0,
-container with the solution installed → reward 1). Docker Desktop isn't currently running
-on this machine and I didn't get around to building the task image before writing this up,
-so that step is still outstanding — everything above was checked against the gateway
-running directly (not the containerized verifier), which is a reasonable proxy but isn't
-the same as the actual grading path.
+I also ran the full two-proof Docker verification:
+
+- **Proof A** (`docker build`, then `bash /tests/test.sh` with no solution installed):
+  `reward.txt` = **0**. 3 of 5 tests fail (golden-output match, persisted receipts,
+  reconciliation correctness) because `/app/publisher/` is empty and `npm run report`
+  has nothing to run — confirming the task is not trivially/accidentally solvable.
+- **Proof B** (same image, `solution/publish.sh` run first to install
+  `release-publisher.mjs`): `reward.txt` = **1**. All 5 tests pass.
+
+Two real bugs surfaced only once I ran this in the actual container (not caught by
+manual gateway testing) and were fixed as part of getting these proofs to pass:
+1. `environment/Dockerfile` never created `/app/publisher/` — Docker doesn't
+   materialize an empty directory from git, so the directory literally didn't exist
+   in the built image until I added `RUN mkdir -p /app/publisher`.
+2. `release-publisher.mjs` used relative paths (`../fixtures/...`,
+   `../../local-dev/keys/...`) that only worked when run directly from
+   `environment/publisher/` during local development. The real invocation
+   (`npm run report` from `/app`) resolves relative paths differently, so these had
+   to become the real container paths (`/app/fixtures/...`, `/app/keys/current/...`).
+3. `tests/test.sh` called `python`, which doesn't exist in this image (only
+   `python3`) — a bug inherited from the original stub file.
+4. The golden-output comparison initially failed because `npm run report` prints its
+   own lifecycle banner to stdout; fixed by adding `--silent` to the `npm run`
+   invocation in the test's `run_report()` helper.

@@ -4,7 +4,7 @@ import duckdb
 
 def run_report():
     result = subprocess.run(
-        ["npm", "run", "report"],
+        ["npm", "run", "report","--silent"],
         cwd="/app",   # the folder containing package.json (hint: /app in the container)
         capture_output=True, text=True, timeout=60,
     )
