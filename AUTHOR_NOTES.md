@@ -56,3 +56,19 @@ Docker verification against the built image (`docker build`, gateway started wit
 
 Both ran against the actual container image, not a local approximation, so this is the
 same path the grader uses.
+
+After that, the second submission still came back rejected — this time the reviewer said
+`tests/test_outputs.py` "was not found," which didn't match what I could see: `git clone`,
+`raw.githubusercontent.com` (HTTP 200), and the GitHub contents API all confirmed the file
+is committed and public on `main`. Digging further, I found a real bug that plausibly
+explains a grader crashing before it ever got to report a normal pass/fail: `tests/test.sh`
+and `solution/release-publisher.mjs` had CRLF line endings mixed into the checked-in
+content (not just a local checkout artifact — `release-publisher.mjs` had CRLF baked into
+the actual git blob, confirmed by diffing before/after `git add --renormalize`). CRLF in a
+bash script breaks it (`syntax error near unexpected token 'fi'`) when it runs inside the
+Linux container. Added `.gitattributes` (`* text=auto eol=lf`) and renormalized so every
+checkout, on any OS, produces byte-identical LF-only files — confirmed via `git grep -Il
+$'\r'` returning nothing. Re-ran both proofs a third time from a completely fresh clone
+with this fix in place; both still pass. I can't prove this was the exact cause of the
+"not found" report since I don't have visibility into their grading infrastructure, but
+it's the one concrete, reproducible failure mode I could find, and it's now eliminated.
