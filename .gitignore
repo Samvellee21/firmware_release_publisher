@@ -1,6 +1,11 @@
 # Claude-drafted material kept for personal study only — must never be
 # part of the submission or the pushed repo.
 _ai_reference_DO_NOT_SUBMIT/
+_skeleton.md
+_originality_note.md
+completion_plan.md
+completion_plan.yaml
+scaffold_plan.yaml
 
 # Local dev scratch (generated keys, local gateway data/logs) — not part
 # of the task; the real signing keys are generated at Docker build time.
