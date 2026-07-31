@@ -21,6 +21,21 @@ function run(connection, sql) {
     });
 }
 
+// The gateway is started by the caller (the verifier, or a human retracing
+// the proof commands) as a separate background process, so it may not be
+// accepting connections yet the instant this script starts. Retry transient
+// connection failures for a few seconds instead of crashing on the first one.
+async function fetchWithRetry(url, options, { retries = 25, delayMs = 200 } = {}) {
+    for (let attempt = 0; ; attempt += 1) {
+        try {
+            return await fetch(url, options);
+        } catch (err) {
+            if (attempt >= retries) throw err;
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+    }
+}
+
 const db = new duckdb.Database('releases.duckdb');
 const con = db.connect();
 
@@ -46,7 +61,7 @@ GROUP BY bundle_id
 ORDER BY bundle_id
 `);
 
-const keyResp = await fetch('http://127.0.0.1:7070/v1/signing-key/current');
+const keyResp = await fetchWithRetry('http://127.0.0.1:7070/v1/signing-key/current');
 const keyMeta = await keyResp.json();
 
 for (const bundle of bundles) {
@@ -63,7 +78,7 @@ for (const bundle of bundles) {
 
     const requestToken = `token-${bundle.bundle_id}`;
 
-    const resp = await fetch('http://127.0.0.1:7070/v1/publications', {
+    const resp = await fetchWithRetry('http://127.0.0.1:7070/v1/publications', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ descriptor, signature, request_token: requestToken }),
